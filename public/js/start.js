@@ -95,7 +95,42 @@ var vue_options = {
                 await this.load_trafic();
         },
 
-        file_select_callback: async function(files){
+        file_select_gpx_callback: async function(files){
+            if( files.length <= 0 )
+                return;
+
+            try{
+                this.dialog_close("#file_select_dialog");
+                this.progress_open();
+                var text = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        resolve(reader.result);
+                    };
+                    reader.onerror = (error) => {
+                        reject(error);
+                    }
+                    reader.readAsText(files[0]);
+                });
+                var gpx = new DOMParser().parseFromString(text, "application/xml");
+                var converted = toGeoJSON.gpx(gpx);
+                externalFeatures = map.data.addGeoJson(converted);
+
+                listener = map.data.addListener('click', async (event) => {
+                    console.log(event);
+                    console.log(event.latLng.lat(), event.latLng.lng());
+                    event.feature.forEachProperty((value, key) =>{
+                        console.log(key, value);
+                    });
+                });
+            }catch(error){
+                console.error(error);
+                alert(error);
+            }finally{
+                this.progress_close();
+            }
+        },
+        file_select_geojson_callback: async function(files){
             if( files.length <= 0 )
                 return;
 
@@ -130,6 +165,7 @@ var vue_options = {
                 this.progress_close();
             }
         },
+        
         load_external_file: async function(){
             this.dialog_open("#file_select_dialog");
         },
